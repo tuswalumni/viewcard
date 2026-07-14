@@ -22,7 +22,7 @@
 
 const TUSW_API = (function () {
   // ⚠️ แก้ URL นี้ให้ตรงกับ Web App ที่ Deploy จริงของสมาคมฯ
-  const API_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbwBqeqG9yu5y-PCKjr5hbgevTuKVjS9oDNbDFCbhxwvj4GX4jDSNEk9tKyOh3qw-J2h/exec?page=viewcard";
 
   async function call(action, payload) {
     payload = payload || {};
