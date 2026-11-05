@@ -33,7 +33,15 @@ const TUSW_API = (function () {
         body: JSON.stringify({ action: action, payload: payload }),
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
-      return await res.json();
+      const data = await res.json();
+      // ✅ ใหม่: ถ้าฝั่ง Apps Script "throw" error ออกมา (เช่น getMemberDataForCard, searchOldMember,
+      // processMemberMigration, getDashboardData) doPost จะห่อเป็น { status:"error", success:false, message }
+      // แล้วตอบกลับ HTTP 200 — เดิมหน้าเว็บมองว่าสำเร็จและนำ object นี้ไปใช้ต่อ (เช่น วาดบัตรว่าง/โชว์ฟอร์มเปล่า)
+      // จึงโยนเป็น Error ให้เข้า .catch() เหมือนพฤติกรรมเดิมของ google.script.run.withFailureHandler
+      if (data && typeof data === "object" && !Array.isArray(data) && data.status === "error" && data.success === false) {
+        throw new Error(data.message || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์");
+      }
+      return data;
     } catch (err) {
       // โยน error ต่อให้โค้ดที่เรียกใช้ไปจัดการเหมือนเดิมกับ withFailureHandler
       throw new Error(err && err.message ? err.message : String(err));
