@@ -26,6 +26,11 @@ const TUSW_API = (function () {
 
   async function call(action, payload) {
     payload = payload || {};
+    // ✅ แนบ token แอดมิน (ถ้าล็อกอินอยู่) ทุกคำขอ — ฝั่งเซิร์ฟเวอร์บังคับตรวจ token กับ action ของแอดมินแล้ว
+    try {
+      const adminToken = sessionStorage.getItem("adminToken");
+      if (adminToken && payload.token === undefined) payload = Object.assign({}, payload, { token: adminToken });
+    } catch (e) { /* sessionStorage ใช้ไม่ได้ — ข้าม */ }
     try {
       const res = await fetch(API_URL, {
         method: "POST",
@@ -38,6 +43,15 @@ const TUSW_API = (function () {
       // processMemberMigration, getDashboardData) doPost จะห่อเป็น { status:"error", success:false, message }
       // แล้วตอบกลับ HTTP 200 — เดิมหน้าเว็บมองว่าสำเร็จและนำ object นี้ไปใช้ต่อ (เช่น วาดบัตรว่าง/โชว์ฟอร์มเปล่า)
       // จึงโยนเป็น Error ให้เข้า .catch() เหมือนพฤติกรรมเดิมของ google.script.run.withFailureHandler
+      // ✅ เซสชันแอดมินหมดอายุ/ไม่ถูกต้อง → ล้าง token แล้วพาไปล็อกอินใหม่ (คืน Promise ที่ไม่จบ เพื่อไม่ให้หน้าเว็บแสดง error ซ้อน)
+      if (data && data.code === "AUTH_REQUIRED") {
+        try { sessionStorage.removeItem("adminToken"); sessionStorage.removeItem("adminName"); } catch (e) {}
+        if (typeof Swal !== "undefined") {
+          Swal.fire({ icon: "info", title: "เซสชันหมดอายุ", text: data.message, confirmButtonText: "เข้าสู่ระบบใหม่", allowOutsideClick: false })
+            .then(function () { location.reload(); });
+        } else { location.reload(); }
+        return new Promise(function () {});
+      }
       if (data && typeof data === "object" && !Array.isArray(data) && data.status === "error" && data.success === false) {
         throw new Error(data.message || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์");
       }
